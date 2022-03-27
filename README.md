@@ -22,3 +22,5 @@ The gltf file in the example is as simple as
 }
 
 ```
+
+The main logic is here (very few lines): https://github.com/rdeioris/glTFRuntimeSTBImage/blob/main/Source/glTFRuntimeSTBImage/Private/glTFRuntimeImageLoaderSTBImage.cpp
