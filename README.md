@@ -7,7 +7,7 @@ This is an example implementing the FglTFRuntimeImageLoader API allowing the Tex
 
 You can add your loaders to the glTFRuntimeImagesConfig structure:
 
-![glTFRuntimeImageLoaderSTBImage](Screenshots.PNG?raw=true "glTFRuntimeImageLoaderSTBImage")
+![glTFRuntimeImageLoaderSTBImage](Screenshot.PNG?raw=true "glTFRuntimeImageLoaderSTBImage")
 
 The gltf file in the example is as simple as
 
