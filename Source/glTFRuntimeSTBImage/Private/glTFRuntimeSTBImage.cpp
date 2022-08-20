@@ -2,19 +2,39 @@
 
 #include "glTFRuntimeSTBImage.h"
 
+#include "glTFRuntimeParser.h"
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_NO_STDIO
+#include "stb_image.h"
+
+
 #define LOCTEXT_NAMESPACE "FglTFRuntimeSTBImageModule"
 
 void FglTFRuntimeSTBImageModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+
+	FglTFRuntimeParser::OnTexturePixels.AddLambda([](TSharedRef<FglTFRuntimeParser> Parser, TSharedRef<FJsonObject> JsonImageObject, TArray64<uint8>& CompressedPixels, int32& Width, int32& Height, TArray64<uint8>& UncompressedPixels)
+		{
+			int32 ChannelsInFile;
+			uint8* Pixels = stbi_load_from_memory(CompressedPixels.GetData(), CompressedPixels.Num(), &Width, &Height, &ChannelsInFile, 4);
+			if (Pixels)
+			{
+				// RGBA to BGRA
+				const int64 ImageSize = Width * Height * 4;
+				for (int64 IndexR = 0; IndexR < ImageSize; IndexR += 4)
+				{
+					Swap(Pixels[IndexR], Pixels[IndexR + 2]);
+				}
+				UncompressedPixels.Append(Pixels, ImageSize);
+				stbi_image_free(Pixels);
+			}
+		});
 }
 
 void FglTFRuntimeSTBImageModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FglTFRuntimeSTBImageModule, glTFRuntimeSTBImage)
