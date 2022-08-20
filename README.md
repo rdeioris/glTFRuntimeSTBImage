@@ -3,24 +3,6 @@ Example Extension for glTFRuntime using stb_image.h as the textures/images loade
 
 The Unreal Engine glTFRuntime plugin has the ability to be extended by external modules/plugins in various ways.
 
-This is an example implementing the FglTFRuntimeImageLoader API allowing the Textures/Images loader to parse more formats than the default ones using the famous stb_image.h header-only library.
+This is an example implementing the OnTexturePixels API allowing the Textures/Images loader to parse more formats than the default ones using the famous stb_image.h header-only library.
 
-You can add your loaders to the glTFRuntimeImagesConfig structure:
-
-![glTFRuntimeImageLoaderSTBImage](Screenshot.PNG?raw=true "glTFRuntimeImageLoaderSTBImage")
-
-The gltf file in the example is as simple as
-
-```json
-{
-        "images":
-        [
-                {
-                        "uri": "mannequin.gif"
-                }
-        ]
-}
-
-```
-
-The main logic is here (very few lines): https://github.com/rdeioris/glTFRuntimeSTBImage/blob/main/Source/glTFRuntimeSTBImage/Private/glTFRuntimeImageLoaderSTBImage.cpp
+Just enable the plugin to activate the new loader (the 'default one' based on the Unreal ImageWrapper module will be disabled).
