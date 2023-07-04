@@ -3,9 +3,19 @@
 #include "glTFRuntimeSTBImage.h"
 
 #include "glTFRuntimeParser.h"
+
+THIRD_PARTY_INCLUDES_START
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_NO_STDIO
 #include "stb_image.h"
+
+#if defined(GLTFRUNTIME_IMAGE_API_1)
+#define STB_DXT_IMPLEMENTATION
+#include "stb_dxt.h"
+#endif
+
+THIRD_PARTY_INCLUDES_END
 
 
 #define LOCTEXT_NAMESPACE "FglTFRuntimeSTBImageModule"
@@ -63,6 +73,69 @@ void FglTFRuntimeSTBImageModule::StartupModule()
 	}
 #endif
 		});
+
+#if defined(GLTFRUNTIME_IMAGE_API_1)
+	FglTFRuntimeParser::OnTextureFilterMips.AddLambda([](TSharedRef<FglTFRuntimeParser> Parser, TArray<FglTFRuntimeMipMap>& Mips, const FglTFRuntimeImagesConfig& ImagesConfig)
+		{
+			if (!ImagesConfig.bCompressMips)
+			{
+				return;
+			}
+
+	for (FglTFRuntimeMipMap& Mip : Mips)
+	{
+		if (Mip.PixelFormat == EPixelFormat::PF_B8G8R8A8)
+		{
+			const int64 BlockX = GPixelFormats[EPixelFormat::PF_DXT5].BlockSizeX;
+			const int64 BlockY = GPixelFormats[EPixelFormat::PF_DXT5].BlockSizeY;
+			const int64 BlockBytes = GPixelFormats[Mip.PixelFormat].BlockBytes;
+			const int64 MipWidthAligned = FMath::Max(((Mip.Width / BlockX) + ((Mip.Width % BlockX) != 0 ? 1 : 0)) * BlockX, BlockX);
+			const int64 MipHeightAligned = FMath::Max(((Mip.Height / BlockY) + ((Mip.Height % BlockY) != 0 ? 1 : 0)) * BlockY, BlockY);
+			const int64 MipWantedSize = (MipWidthAligned * BlockBytes * MipHeightAligned);
+			const int64 MipNewSize = (MipWidthAligned * GPixelFormats[EPixelFormat::PF_DXT5].BlockBytes * MipHeightAligned) / (BlockX * BlockY);
+
+			// avoid reading out of the original pixels data
+			if (Mip.Pixels.Num() < MipWantedSize)
+			{
+				Mip.Pixels.AddUninitialized(MipWantedSize - Mip.Pixels.Num());
+			}
+
+			const int64 Pitch = Mip.Width * BlockBytes;
+
+			TArray<uint8> OutPixels;
+			OutPixels.AddUninitialized(MipNewSize);
+
+			uint8* OutPtr = OutPixels.GetData();
+
+			for (int32 PixelY = 0; PixelY < Mip.Height; PixelY += 4)
+			{
+				for (int32 PixelX = 0; PixelX < Mip.Width; PixelX += 4)
+				{
+					TArray<uint8, TInlineAllocator<64>> Block;
+					Block.AddUninitialized(64);
+					FMemory::Memcpy(&Block, &Mip.Pixels[(PixelY + 0) * Pitch + PixelX * BlockBytes], BlockBytes * 4);
+					FMemory::Memcpy(&Block[16], &Mip.Pixels[(PixelY + 1) * Pitch + PixelX * BlockBytes], BlockBytes * 4);
+					FMemory::Memcpy(&Block[32], &Mip.Pixels[(PixelY + 2) * Pitch + PixelX * BlockBytes], BlockBytes * 4);
+					FMemory::Memcpy(&Block[48], &Mip.Pixels[(PixelY + 3) * Pitch + PixelX * BlockBytes], BlockBytes * 4);
+
+					// swap R & B
+					for (int32 ByteIndex = 0; ByteIndex < 64; ByteIndex += 4)
+					{
+						Swap(Block[ByteIndex], Block[ByteIndex + 2]);
+					}
+
+					stb_compress_dxt_block(OutPtr, Block.GetData(), 1, STB_DXT_HIGHQUAL);
+					OutPtr += 16;
+				}
+			}
+
+			Mip.PixelFormat = EPixelFormat::PF_DXT5;
+			Mip.Pixels = OutPixels;
+		}
+	}
+		}
+	);
+#endif
 }
 
 void FglTFRuntimeSTBImageModule::ShutdownModule()
