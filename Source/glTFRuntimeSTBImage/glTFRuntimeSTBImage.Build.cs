@@ -37,6 +37,7 @@ public class glTFRuntimeSTBImage : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"glTFRuntime",
+                "RenderCore"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
