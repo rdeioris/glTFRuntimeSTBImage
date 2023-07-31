@@ -86,13 +86,19 @@ void FglTFRuntimeSTBImageModule::StartupModule()
 	{
 		if (Mip.PixelFormat == EPixelFormat::PF_B8G8R8A8)
 		{
-			const int64 BlockX = GPixelFormats[EPixelFormat::PF_DXT5].BlockSizeX;
-			const int64 BlockY = GPixelFormats[EPixelFormat::PF_DXT5].BlockSizeY;
+			EPixelFormat CompressedFormat = EPixelFormat::PF_DXT5;
+			if (ImagesConfig.Compression == TextureCompressionSettings::TC_Normalmap)
+			{
+				CompressedFormat = EPixelFormat::PF_BC5;
+			}
+
+			const int64 BlockX = GPixelFormats[CompressedFormat].BlockSizeX;
+			const int64 BlockY = GPixelFormats[CompressedFormat].BlockSizeY;
 			const int64 BlockBytes = GPixelFormats[Mip.PixelFormat].BlockBytes;
 			const int64 MipWidthAligned = FMath::Max(((Mip.Width / BlockX) + ((Mip.Width % BlockX) != 0 ? 1 : 0)) * BlockX, BlockX);
 			const int64 MipHeightAligned = FMath::Max(((Mip.Height / BlockY) + ((Mip.Height % BlockY) != 0 ? 1 : 0)) * BlockY, BlockY);
 			const int64 MipWantedSize = (MipWidthAligned * BlockBytes * MipHeightAligned);
-			const int64 MipNewSize = (MipWidthAligned * GPixelFormats[EPixelFormat::PF_DXT5].BlockBytes * MipHeightAligned) / (BlockX * BlockY);
+			const int64 MipNewSize = (MipWidthAligned * GPixelFormats[CompressedFormat].BlockBytes * MipHeightAligned) / (BlockX * BlockY);
 
 			// avoid reading out of the original pixels data
 			if (Mip.Pixels.Num() < MipWantedSize)
@@ -124,12 +130,25 @@ void FglTFRuntimeSTBImageModule::StartupModule()
 						Swap(Block[ByteIndex], Block[ByteIndex + 2]);
 					}
 
-					stb_compress_dxt_block(OutPtr, Block.GetData(), 1, STB_DXT_HIGHQUAL);
+					if (CompressedFormat == EPixelFormat::PF_BC5)
+					{
+						TArray<uint8, TInlineAllocator<32>> RGBlock;
+						for (int32 ByteIndex = 0; ByteIndex < 64; ByteIndex += 4)
+						{
+							RGBlock.Append(&Block[ByteIndex], 2);
+						}
+						stb_compress_bc5_block(OutPtr, RGBlock.GetData());
+					}
+					else
+					{
+
+						stb_compress_dxt_block(OutPtr, Block.GetData(), 1, STB_DXT_HIGHQUAL);
+					}
 					OutPtr += 16;
 				}
 			}
 
-			Mip.PixelFormat = EPixelFormat::PF_DXT5;
+			Mip.PixelFormat = CompressedFormat;
 			Mip.Pixels = OutPixels;
 		}
 	}
