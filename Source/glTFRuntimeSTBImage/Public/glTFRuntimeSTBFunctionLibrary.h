@@ -16,7 +16,7 @@ class GLTFRUNTIMESTBIMAGE_API UglTFRuntimeSTBFunctionLibrary : public UBlueprint
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "glTFRuntime|STBImage")
+	UFUNCTION(BlueprintCallable, meta = (AutoCreateRefTerm = "ImagesConfig"), Category = "glTFRuntime|STBImage")
 	static UTexture2DArray* LoadAnimGIFAsTexture2DArray(UglTFRuntimeAsset* Asset, int32& NumFrames, float& FPS, const FglTFRuntimeImagesConfig& ImagesConfig);
 	
 };
