@@ -1,4 +1,4 @@
-// Copyright 2020-2022, Roberto De Ioris.
+// Copyright 2020-2024, Roberto De Ioris.
 
 #pragma once
 
@@ -12,4 +12,6 @@ public:
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
+
+	static bool LoadAnimGIFFromBlob(const uint8* Data, const int32 Size, TArray<FglTFRuntimeMipMap>& Mips, float& Duration);
 };
